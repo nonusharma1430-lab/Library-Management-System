@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col">
+        <h2>Members Management</h2>
+    </div>
+    <div class="col text-end">
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addMemberModal">
+            <i class="fas fa-user-plus"></i> Add New Member
+        </button>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col">
+        <form method="GET" action="{{ url_for('members.list_members') }}" class="d-flex">
+            <input type="text" name="search" class="form-control me-2" placeholder="Search by name, email, phone or member ID" value="{{ search }}">
+            <button type="submit" class="btn btn-outline-primary">Search</button>
+        </form>
+    </div>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>Member ID</th>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Member Type</th>
+                <th>Books Borrowed</th>
+                <th>Status</th>
+                <th>Registration Date</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for member in members %}
+            <tr>
+                <td>{{ member.member_id }}</td>
+                <td>{{ member.name }}</td>
+                <td>{{ member.email }}</td>
+                <td>{{ member.phone }}</td>
+                <td>{{ member.member_type }}</td>
+                <td>{{ member.books_borrowed }}/{{ member.max_books }}</td>
+                <td>
+                    <span class="badge {% if member.membership_status == 'Active' %}bg-success{% else %}bg-danger{% endif %}">
+                        {{ member.membership_status }}
+                    </span>
+                </td>
+                <td>{{ member.registration_date.strftime('%Y-%m-%d') if member.registration_date else '-' }}</td>
+                <td>
+                    <button class="btn btn-sm btn-info" onclick="editMember('{{ member._id }}')">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteMember('{{ member._id }}')">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Add Member Modal -->
+<div class="modal fade" id="addMemberModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Member</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="addMemberForm">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label>Full Name *</label>
+                        <input type="text" name="name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>Email *</label>
+                        <input type="email" name="email" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>Phone *</label>
+                        <input type="tel" name="phone" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>Address</label>
+                        <textarea name="address" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label>Member Type</label>
+                            <select name="member_type" class="form-control">
+                                <option value="Regular">Regular</option>
+                                <option value="Premium">Premium</option>
+                                <option value="Student">Student</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label>Max Books Allowed</label>
+                            <input type="number" name="max_books" class="form-control" value="5" min="1" max="20">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Add Member</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Member Modal -->
+<div class="modal fade" id="editMemberModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Member</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="editMemberForm">
+                <input type="hidden" name="member_id" id="edit_member_id">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label>Full Name *</label>
+                        <input type="text" name="name" id="edit_name" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>Phone *</label>
+                        <input type="tel" name="phone" id="edit_phone" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label>Address</label>
+                        <textarea name="address" id="edit_address" class="form-control" rows="2"></textarea>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <label>Member Type</label>
+                            <select name="member_type" id="edit_member_type" class="form-control">
+                                <option value="Regular">Regular</option>
+                                <option value="Premium">Premium</option>
+                                <option value="Student">Student</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label>Max Books Allowed</label>
+                            <input type="number" name="max_books" id="edit_max_books" class="form-control" min="1" max="20">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label>Membership Status</label>
+                        <select name="membership_status" id="edit_status" class="form-control">
+                            <option value="Active">Active</option>
+                            <option value="Inactive">Inactive</option>
+                            <option value="Suspended">Suspended</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Member</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

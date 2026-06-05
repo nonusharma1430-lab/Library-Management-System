@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-white bg-primary mb-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="card-title">Total Books</h5>
+                        <h2>{{ book_stats.total_books }}</h2>
+                    </div>
+                    <i class="fas fa-book fa-3x"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-success mb-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="card-title">Available Books</h5>
+                        <h2>{{ book_stats.available_books }}</h2>
+                    </div>
+                    <i class="fas fa-check-circle fa-3x"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-warning mb-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="card-title">Borrowed Books</h5>
+                        <h2>{{ book_stats.borrowed_books }}</h2>
+                    </div>
+                    <i class="fas fa-hand-holding fa-3x"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-white bg-info mb-3">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="card-title">Total Members</h5>
+                        <h2>{{ member_stats.total_members }}</h2>
+                    </div>
+                    <i class="fas fa-users fa-3x"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>Recent Books Added</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    {% for book in recent_books %}
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ book.title }}</strong><br>
+                                <small class="text-muted">by {{ book.author }}</small>
+                            </div>
+                            <span class="badge {% if book.available_copies > 0 %}bg-success{% else %}bg-danger{% endif %}">
+                                {{ book.available_copies }}/{{ book.total_copies }} available
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5>Recent Members</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    {% for member in recent_members %}
+                    <div class="list-group-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>{{ member.name }}</strong><br>
+                                <small class="text-muted">{{ member.member_id }}</small>
+                            </div>
+                            <span class="badge bg-info">{{ member.books_borrowed }}/{{ member.max_books }} books</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5>Recent Transactions</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Book</th>
+                                <th>Member</th>
+                                <th>Issue Date</th>
+                                <th>Due Date</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for transaction in recent_transactions %}
+                            <tr>
+                                <td>{{ transaction.book_title }}</td>
+                                <td>{{ transaction.member_name }}</td>
+                                <td>{{ transaction.issue_date.strftime('%Y-%m-%d') if transaction.issue_date else '-' }}</td>
+                                <td>{{ transaction.due_date.strftime('%Y-%m-%d') if transaction.due_date else '-' }}</td>
+                                <td>
+                                    <span class="badge {% if transaction.status == 'Issued' %}bg-warning{% else %}bg-success{% endif %}">
+                                        {{ transaction.status }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

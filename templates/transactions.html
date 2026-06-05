@@ -1,0 +1,327 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mb-3">
+    <div class="col">
+        <h2>Book Transactions</h2>
+    </div>
+    <div class="col text-end">
+        <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#issueBookModal">
+            <i class="fas fa-hand-holding"></i> Issue New Book
+        </button>
+    </div>
+</div>
+
+<div class="row mb-3">
+    <div class="col">
+        <form method="GET" action="{{ url_for('transactions.list_transactions') }}" class="d-flex">
+            <select name="status" class="form-control me-2" onchange="this.form.submit()">
+                <option value="">All Transactions</option>
+                <option value="Issued" {% if status == 'Issued' %}selected{% endif %}>Currently Issued</option>
+                <option value="Returned" {% if status == 'Returned' %}selected{% endif %}>Returned</option>
+            </select>
+            <button type="submit" class="btn btn-outline-primary">Filter</button>
+        </form>
+    </div>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>Book Title</th>
+                <th>Member Name</th>
+                <th>Member ID</th>
+                <th>Issue Date</th>
+                <th>Due Date</th>
+                <th>Return Date</th>
+                <th>Fine</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for transaction in transactions %}
+            <tr>
+                <td>{{ transaction.book_title }}</td>
+                <td>{{ transaction.member_name }}</td>
+                <td>{{ transaction.member_id_display }}</td>
+                <td>{{ transaction.issue_date.strftime('%Y-%m-%d') if transaction.issue_date else '-' }}</td>
+                <td>
+                    {{ transaction.due_date.strftime('%Y-%m-%d') if transaction.due_date else '-' }}
+                    {% if transaction.status == 'Issued' and transaction.due_date %}
+                        {% if transaction.due_date < now %}
+                        <span class="badge bg-danger">Overdue</span>
+                        {% endif %}
+                    {% endif %}
+                </td>
+                <td>{{ transaction.return_date.strftime('%Y-%m-%d') if transaction.return_date else '-' }}</td>
+                <td>${{ transaction.fine if transaction.fine else 0 }}</td>
+                <td>
+                    <span class="badge {% if transaction.status == 'Issued' %}bg-warning{% else %}bg-success{% endif %}">
+                        {{ transaction.status }}
+                    </span>
+                </td>
+                <td>
+                    {% if transaction.status == 'Issued' %}
+                    <button class="btn btn-sm btn-success" onclick="returnBook('{{ transaction._id }}')">
+                        <i class="fas fa-undo"></i> Return
+                    </button>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<!-- Pagination -->
+{% if total > per_page %}
+<nav>
+    <ul class="pagination justify-content-center">
+        {% if page > 1 %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page-1 }}{% if status %}&status={{ status }}{% endif %}">Previous</a>
+        </li>
+        {% endif %}
+        
+        {% set total_pages = (total / per_page)|round(0, 'ceil')|int %}
+        {% for p in range(1, total_pages + 1) %}
+            {% if p == page %}
+            <li class="page-item active"><span class="page-link">{{ p }}</span></li>
+            {% elif p <= page + 3 and p >= page - 3 %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ p }}{% if status %}&status={{ status }}{% endif %}">{{ p }}</a>
+            </li>
+            {% endif %}
+        {% endfor %}
+        
+        {% if page < total_pages %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ page+1 }}{% if status %}&status={{ status }}{% endif %}">Next</a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+
+<!-- Issue Book Modal -->
+<div class="modal fade" id="issueBookModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Issue New Book</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="issueBookForm">
+                <div class="modal-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>Search Book</h6>
+                            <input type="text" id="bookSearchInput" class="form-control" placeholder="Search by title, author, or ISBN" onkeyup="searchBooks(this.value)">
+                            <div id="bookSearchResults" class="list-group mt-2" style="display:none; max-height: 200px; overflow-y: auto;"></div>
+                            <input type="hidden" id="selectedBookId" name="book_id">
+                            <div id="selectedBookName" class="mt-2 text-success"></div>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>Search Member</h6>
+                            <input type="text" id="memberSearchInput" class="form-control" placeholder="Search by name, email, or member ID" onkeyup="searchMembers(this.value)">
+                            <div id="memberSearchResults" class="list-group mt-2" style="display:none; max-height: 200px; overflow-y: auto;"></div>
+                            <input type="hidden" id="selectedMemberId" name="member_id">
+                            <div id="selectedMemberName" class="mt-2 text-success"></div>
+                            <div id="memberBooksList" class="mt-3"></div>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-6">
+                            <label>Days Allowed</label>
+                            <input type="number" name="days_allowed" class="form-control" value="14" min="1" max="30">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Issue Book</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Container for Notifications -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index: 11"></div>
+
+<script>
+function searchBooks(query) {
+    if (query.length < 2) {
+        $('#bookSearchResults').hide();
+        return;
+    }
+    
+    $.get(`/transactions/search-book?q=${query}`, function(books) {
+        const results = $('#bookSearchResults');
+        results.empty();
+        if (books.length === 0) {
+            results.append('<div class="list-group-item text-muted">No books found</div>');
+        } else {
+            books.forEach(book => {
+                results.append(`
+                    <div class="list-group-item list-group-item-action" onclick="selectBook('${book._id}', '${book.title} - ${book.author} (${book.available_copies} available)')">
+                        <strong>${book.title}</strong><br>
+                        <small>${book.author} - ${book.isbn} (${book.available_copies} copies available)</small>
+                    </div>
+                `);
+            });
+        }
+        results.show();
+    });
+}
+
+function searchMembers(query) {
+    if (query.length < 2) {
+        $('#memberSearchResults').hide();
+        return;
+    }
+    
+    $.get(`/transactions/search-member?q=${query}`, function(members) {
+        const results = $('#memberSearchResults');
+        results.empty();
+        if (members.length === 0) {
+            results.append('<div class="list-group-item text-muted">No members found</div>');
+        } else {
+            members.forEach(member => {
+                results.append(`
+                    <div class="list-group-item list-group-item-action" onclick="selectMember('${member._id}', '${member.name} (${member.member_id})', '${member._id}')">
+                        <strong>${member.name}</strong><br>
+                        <small>${member.member_id} - ${member.email} (${member.books_borrowed}/${member.max_books} books)</small>
+                    </div>
+                `);
+            });
+        }
+        results.show();
+    });
+}
+
+function selectBook(id, title) {
+    $('#selectedBookId').val(id);
+    $('#selectedBookName').html(`<i class="fas fa-check-circle"></i> Selected: ${title}`);
+    $('#bookSearchInput').val(title.split(' - ')[0]);
+    $('#bookSearchResults').hide();
+}
+
+function selectMember(id, name, memberId) {
+    $('#selectedMemberId').val(id);
+    $('#selectedMemberName').html(`<i class="fas fa-check-circle"></i> Selected: ${name}`);
+    $('#memberSearchInput').val(name.split(' (')[0]);
+    $('#memberSearchResults').hide();
+    
+    // Get member's current books
+    $.get(`/transactions/member-transactions/${id}`, function(response) {
+        if (response.success && response.transactions.length > 0) {
+            let html = '<div class="alert alert-info mt-2"><strong>Currently Borrowed:</strong><ul>';
+            response.transactions.forEach(book => {
+                html += `<li>${book.book_title} - Due in ${book.days_left} days</li>`;
+            });
+            html += '</ul></div>';
+            $('#memberBooksList').html(html);
+        } else {
+            $('#memberBooksList').html('<div class="alert alert-success mt-2">No books currently borrowed</div>');
+        }
+    });
+}
+
+function returnBook(transactionId) {
+    if (confirm('Confirm book return?')) {
+        $.ajax({
+            url: '/transactions/return',
+            method: 'POST',
+            data: { transaction_id: transactionId, fine_amount: 0 },
+            success: function(response) {
+                if (response.success) {
+                    showNotification('success', response.message);
+                    setTimeout(() => location.reload(), 1500);
+                } else {
+                    showNotification('danger', response.message);
+                }
+            },
+            error: function() {
+                showNotification('danger', 'Error returning book');
+            }
+        });
+    }
+}
+
+function showNotification(type, message) {
+    const toastHtml = `
+        <div class="toast align-items-center text-white bg-${type} border-0" role="alert" data-bs-autohide="true" data-bs-delay="3000">
+            <div class="d-flex">
+                <div class="toast-body">
+                    ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    `;
+    
+    const toastElement = $(toastHtml);
+    $('.toast-container').append(toastElement);
+    const toast = new bootstrap.Toast(toastElement[0]);
+    toast.show();
+    
+    toastElement.on('hidden.bs.toast', function() {
+        $(this).remove();
+    });
+}
+
+// Issue Book Form Submission
+$('#issueBookForm').on('submit', function(e) {
+    e.preventDefault();
+    
+    const bookId = $('#selectedBookId').val();
+    const memberId = $('#selectedMemberId').val();
+    
+    if (!bookId) {
+        showNotification('danger', 'Please select a book');
+        return;
+    }
+    
+    if (!memberId) {
+        showNotification('danger', 'Please select a member');
+        return;
+    }
+    
+    const formData = {
+        book_id: bookId,
+        member_id: memberId,
+        days_allowed: $('input[name="days_allowed"]').val()
+    };
+    
+    $.ajax({
+        url: '/transactions/issue',
+        method: 'POST',
+        data: formData,
+        success: function(response) {
+            if (response.success) {
+                showNotification('success', response.message);
+                setTimeout(() => location.reload(), 1500);
+            } else {
+                showNotification('danger', response.message);
+            }
+        },
+        error: function(xhr) {
+            showNotification('danger', xhr.responseJSON?.message || 'Error issuing book');
+        }
+    });
+});
+
+// Hide search results when clicking outside
+$(document).click(function(event) {
+    if (!$(event.target).closest('#bookSearchInput, #bookSearchResults').length) {
+        $('#bookSearchResults').hide();
+    }
+    if (!$(event.target).closest('#memberSearchInput, #memberSearchResults').length) {
+        $('#memberSearchResults').hide();
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2 class="mb-4">Library Reports</h2>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="card bg-primary text-white mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Total Books</h5>
+                <h2>{{ book_stats.total_books }}</h2>
+                <p>Available: {{ book_stats.available_books }} | Borrowed: {{ book_stats.borrowed_books }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-success text-white mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Members</h5>
+                <h2>{{ member_stats.total_members }}</h2>
+                <p>Active: {{ member_stats.active_members }} | Total Books Borrowed: {{ member_stats.total_books_borrowed }}</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card bg-warning text-white mb-3">
+            <div class="card-body">
+                <h5 class="card-title">Transactions</h5>
+                <h2>{{ transaction_stats.total_issued }}</h2>
+                <p>Currently Issued: {{ transaction_stats.total_issued }} | Overdue: {{ transaction_stats.overdue_books }}</p>
+                <p>Total Fines Collected: ${{ transaction_stats.total_fines }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5>Recent Transactions</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Book Title</th>
+                                <th>Member Name</th>
+                                <th>Issue Date</th>
+                                <th>Due Date</th>
+                                <th>Return Date</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for transaction in recent_transactions %}
+                            <tr>
+                                <td>{{ transaction.book_title }}</td>
+                                <td>{{ transaction.member_name }}</td>
+                                <td>{{ transaction.issue_date.strftime('%Y-%m-%d') if transaction.issue_date else '-' }}</td>
+                                <td>{{ transaction.due_date.strftime('%Y-%m-%d') if transaction.due_date else '-' }}</td>
+                                <td>{{ transaction.return_date.strftime('%Y-%m-%d') if transaction.return_date else '-' }}</td>
+                                <td>
+                                    <span class="badge {% if transaction.status == 'Issued' %}bg-warning{% else %}bg-success{% endif %}">
+                                        {{ transaction.status }}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
