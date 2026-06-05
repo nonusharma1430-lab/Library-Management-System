@@ -1,0 +1,6 @@
+Flask==2.3.3
+pymongo==4.5.0
+python-dotenv==1.0.0
+flask-paginate==2023.10.23
+WTForms==3.0.1
+werkzeug==2.3.7
